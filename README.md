@@ -5,6 +5,7 @@
 Experiment parameters:
 
 - Webr
+- An R function we'll make directly callable as a JS function
 - Observable Standard Library's `DuckDBCLient`
 - Observable Plot
 - Lit (web components)

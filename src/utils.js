@@ -1,4 +1,19 @@
+// I hate date stuff in JS so much
+export function addDays(date, days) {
+	const copy = new Date(Number(date))
+	copy.setDate(date.getDate() + days)
+	return copy
+}
+
+
 export function describeObject(obj) {
+
+// I hate date stuff in JS so much
+function addDays(date, days) {
+	const copy = new Date(Number(date))
+	copy.setDate(date.getDate() + days)
+	return copy
+}
 	const keys = Object.keys(obj);
 	const numKeys = keys.length;
 	const type = Array.isArray(obj) ? 'array' : typeof obj;

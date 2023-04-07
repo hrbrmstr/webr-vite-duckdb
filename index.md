@@ -33,31 +33,40 @@
 ---
 # 🧪 🕸️ Vite + 🦆 DuckDB via Observable's Standard Library
 
-
 <status-message id="webr-status" text="WebR Loading…"></status-message>
 
 ## A Toy Modeling Example
 ----------
-"Experiment" Hypothesis:
+Experiment Hypothesis:
 
 >_We can use DuckDB to wrangle data for us, let R do some "modeling", and let Observable Plot show us the results_
 
-"Experiment" parameters:
+Experiment parameters:
 
 - Webr
+- An R function we'll make directly callable as a JS function
 - Observable Standard Library's `DuckDBCLient`
 - Observable Plot
 - Lit (web components)
 - Vite (for building)
 ----------
 
+## When Will GreyNoise Have 1,000 "Tags"
+
+<action-button disabled label="Tell me Carnac!" id="carnac-button"></action-button>
+
+We will reach 1,000 tags on or about <span id="predicted-date">❓❓❓❓❓❓</span>.
+
+<ojs-shorthand-plot id="tag-volume" chartTitle="GreyNoise Current Tag Volume">
+</ojs-shorthand-plot>
+
 ## Adopt, Adapt, And Improve
 
-Building off of the previous experiment, today we will combine DuckDB data ops with WebR, letting R do some trivial modeling with `glm` on data we load and wrangle with DuckDB.
+Building off of the [previous experiment](https://rud.is/w/vite-duckdb), today we will combine DuckDB data ops with WebR, letting R do some trivial modeling with `glm` on data we load and wrangle with DuckDB.
 
 Let's be super clear, right up front: this data is small enough to load into R, process in R, and then model and plot in R without any other packages (save {svglite}). It is deliberately a toy example to make it easier to work with while showing the core concepts.
 
-Here's the tables we have:
+Here are the tables we have:
 
 <simple-message id="describe-tables"></simple-message>
 
@@ -125,6 +134,8 @@ function(csum, days_elapsed, target_csum) {
   model <- glm(csum ~ days_elapsed, family = "poisson")
 
   predicted_days_elapsed <- days_elapsed
+  predicted_days_elapsed_ret <- c()
+  predicted_days_csum_ret <- c()
 
   while (TRUE) {
 
@@ -136,11 +147,17 @@ function(csum, days_elapsed, target_csum) {
       type = "response"
     ) -> predicted_csum
 
+    predicted_days_csum_ret <- c(predicted_days_csum_ret, predicted_csum)
+    predicted_days_elapsed_ret <- c(predicted_days_elapsed_ret, predicted_days_elapsed)
+
     if (predicted_csum >= target_csum) break
 
   }
 
-  predicted_days_elapsed
+  data.frame(
+    days_elapsed = predicted_days_elapsed_ret,
+    tagCount = predicted_days_csum_ret
+  )
 
 }
 ```
@@ -153,21 +170,17 @@ const nDays = await predict(
   1000
 )
 
-// I hate date stuff in JS so much
-function addDays(date, days) {
-  const copy = new Date(Number(date))
-  copy.setDate(date.getDate() + days)
-  return copy
-}
+// get the last ("1,000" prediction) elapsed day and min date 
+const lastDay = nDays.values[0].values[ nDays.values[0].values.length-1]
+const minDate = ddbResToArray(
+	await db.sql`SELECT min(created_at) AS min_date FROM tags`
+)[0].min_date
 
-const minDate = ddbResToArray(await db.sql`SELECT min(created_at) AS min_date FROM tags`)[0].min_date
+// …
+
+// display the computed "1,000" date
+predictedDate.textContent = addDays(minDate, lastDay).toDateString()
 ```
-
-```js
-addDays(minDate, nDays.values[0]).toDateString()
-```
-
-We will reach 1,000 tags on or about <span id="predicted-date"></span>.
 
 ## FIN
 
