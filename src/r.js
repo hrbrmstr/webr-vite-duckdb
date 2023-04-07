@@ -57,3 +57,48 @@ export function simplifyRJs(obj) {
 }
 
 export const R = globalThis.R
+
+
+/**
+ * Make a "predict" function in R that we'll use directly from J
+ * 
+ * @param {[]int} csum array with cumulative sums
+ * @param {[]int} days_elapsed array with elapsed days
+ * @param {int} target_csum how many tags are we predicting for?
+ * @return {awful r object}
+ */
+export const predict = await R`
+function(csum, days_elapsed, target_csum) {
+
+	# saddest. model. ever.
+
+	model <- glm(csum ~ days_elapsed, family = "poisson")
+
+	predicted_days_elapsed <- days_elapsed
+  predicted_days_elapsed_ret <- c()
+  predicted_days_csum_ret <- c()
+
+	while (TRUE) {
+
+		predicted_days_elapsed <- max(predicted_days_elapsed) + 1
+
+		predict(
+			model, 
+			newdata = data.frame(days_elapsed = predicted_days_elapsed), 
+			type = "response"
+		) -> predicted_csum
+
+		predicted_days_csum_ret <- c(predicted_days_csum_ret, predicted_csum)
+		predicted_days_elapsed_ret <- c(predicted_days_elapsed_ret, predicted_days_elapsed)
+
+		if (predicted_csum >= target_csum) break
+
+	}
+
+  data.frame(
+		days_elapsed = predicted_days_elapsed_ret,
+		tagCount = predicted_days_csum_ret
+	)
+
+}
+`

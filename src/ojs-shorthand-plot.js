@@ -47,13 +47,16 @@ export class OJSShorthandPlot extends LitElement {
 			color: {
 				legend: true
 			},
+			y: {
+				grid: true
+			},
 			style: this.style
 		})
 
 		return when(this.chart === null,
 			() => html`<div style="color: ${foreground}"><slot></slot></div>`,
 			() => html`<div style="color: ${foreground}">
-			<h3>${this.chartTitle}</h3>
+			<h2>${this.chartTitle}</h2>
 			${renderedPlot}
 			</div>`
 		)

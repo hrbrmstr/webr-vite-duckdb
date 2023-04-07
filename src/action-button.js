@@ -7,7 +7,7 @@ export class ActionButton extends LitElement {
 		id: { type: String },
 		label: { type: String },
 		onClick: { type: Function },
-		disabled: { type: Boolean }
+		disable: { type: Boolean }
 	};
 
 	async _handleClick(e) {
@@ -19,18 +19,16 @@ export class ActionButton extends LitElement {
 	constructor() {
 		super()
 		this.label = ''
-		this.disabled = true
+		this.disable = true
 		this.action = async (e) => { }
 	}
 
 	render() {
 
-		const dis = this.disabled ? "disabled" : ""
-
 		return when(
 			this.label === '',
-			() => html`<div></div>`,
-			() => html`<button ${dis} @click="${this._handleClick}" id="${this.id}">${this.label}</button>`
+			() => html`<slot></slot><div></div>`,
+			() => html`<div><center><slot></slot><br/><button ?disabled=${this.disable} @click="${this._handleClick}" id="${this.id}">${this.label}</button></center></div>`
 		)
 	}
 

@@ -53,18 +53,20 @@ Experiment parameters:
 
 ## When Will GreyNoise Have 1,000 "Tags"
 
-<action-button disabled label="Tell me Carnac!" id="carnac-button"></action-button>
+<action-button disabled label="Tell me, Carnac!" id="carnac-button"><img src="carnac.jpg" width="15%"/></action-button>
 
-We will reach 1,000 tags on or about <span id="predicted-date">❓❓❓❓❓❓</span>.
+GreyNoise will reach 1,000 tags on or about <span id="predicted-date">❓❓❓❓❓❓</span>.
 
-<ojs-shorthand-plot id="tag-volume" chartTitle="GreyNoise Current Tag Volume">
+<ojs-shorthand-plot disabled id="tag-volume" chartTitle="GreyNoise Current Tag Volume">
 </ojs-shorthand-plot>
 
 ## Adopt, Adapt, And Improve
 
 Building off of the [previous experiment](https://rud.is/w/vite-duckdb), today we will combine DuckDB data ops with WebR, letting R do some trivial modeling with `glm` on data we load and wrangle with DuckDB.
 
-Let's be super clear, right up front: this data is small enough to load into R, process in R, and then model and plot in R without any other packages (save {svglite}). It is deliberately a toy example to make it easier to work with while showing the core concepts.
+>_Let's be super clear, right up front: this data is small enough to load into R, process in R, and then model and plot in R without any other packages (save {svglite}). It is deliberately a toy example to make it easier to work with while showing the core concepts of loading from a database, doing a more than trivial database query, passing data to R, and getting a result back._
+
+At work, one of the core work products from my team are what we call "[tags](https://viz.greynoise.io/cheat-sheet/tags)". They are detection rules for vulnerability exploit checks/attempts, good/bad actors, and more. We're coming up on the human-psyche-significant "1,000" value for total number of tags. Today's example predicts when that happens based on the volume time series.
 
 Here are the tables we have:
 
@@ -77,6 +79,10 @@ This is the schema for our `tags` table:
 This is what's in it:
 
 <data-frame-view label="Tags" id="tags-view"></data-frame-view>
+
+Now, we need to compute the _cumulative sum_ for each day and keep track of _days elapsed_ so we can pass those vectors to our model.
+
+It's not a horrible SQL query, especially if we break it up using common table expressions (ref: `duckdb.js`):
 
 ```sql
 -- Setup a date range that spans the entire min/max created_at
@@ -124,7 +130,11 @@ FROM
   joined_dates_counts;
 ```
 
+Here's what those "tag stats" look like:
+
 <data-frame-view label="Tag Stats" id="tags-stats-view"></data-frame-view>
+
+We will use R to predict when the tag count will reach a specified value, this is the function we'll be using (ref: `r.js`):
 
 ```r
 function(csum, days_elapsed, target_csum) {
@@ -162,12 +172,22 @@ function(csum, days_elapsed, target_csum) {
 }
 ```
 
+Sure, that could be fancier, but we don't need fancy for this example.
+
+We then use the fact that:
+
+```js
+await R`function NAME(…) {}`
+```
+
+produces a _callable_ JS function (also in `r.js`) and we use it with the vectors we made from the database
+
 ```js
 // call the function
 const nDays = await predict(
   tagsCumSum.map(d => d.csum),
   tagsCumSum.map(d => d.days_elapsed),
-  1000
+  1_000
 )
 
 // get the last ("1,000" prediction) elapsed day and min date 
@@ -182,8 +202,31 @@ const minDate = ddbResToArray(
 predictedDate.textContent = addDays(minDate, lastDay).toDateString()
 ```
 
+## Project Layout
+
+Core files:
+
+```
+├── index.md                  # what we render into index.html via the justfile
+├── src
+│   ├── components.css        # CSS specific to component styling
+│   ├── index.css             # core SSS
+│   ├── action-button.js      # Lit component for the button
+│   ├── data-frame-view.js    # Lit component for displaying tables
+│   ├── ojs-shorthand-plot.js # Lit component for Observable plots
+│   ├── simple-message.js     # Lit component for simple output messages/text
+│   ├── status-message.js     # Lit component for my WebR status message up top
+│   ├── main.js               # main app runner
+│   ├── r.js                  # WebR context creation and support functions
+│   ├── duckdb.js             # DuckDB context creation and support functions and queries
+│   └── utils.js              # Miscellaneous utilities
+└──
+```
+
 ## FIN
 
 You can find the source [on GitHub](https://github.com/hrbrmstr/webr-vite-duckdb).
 
 <p style="text-align: center">Brought to you by @hrbrmstr</p>
+
+<p style='font-size:8pt'>"Carnac" image by The Tonight Show Starring Johnny Carson, Fair use, https://en.wikipedia.org/w/index.php?curid=2560897</p>
