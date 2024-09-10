@@ -28,7 +28,7 @@ const tags = await FileAttachment(`https://rud.is/data/tags.json?d=${Date.now()}
 
 // make the db
 export const db = await DuckDBClient().of({
-	tags: tags.metadata.map(d => {
+	tags: tags.tags.map(d => {
 		d.created_at = new Date(d.created_at)
 		return {
 			slug: d.slug,
